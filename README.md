@@ -1,5 +1,4 @@
 
-```markdown
 # Gemini Agent Builder GUI (using Google ADK)
 
 ![Google ADK](https://img.shields.io/badge/Google-Agent%20Development%20Kit%20(ADK)-4285F4?style=for-the-badge&logo=google&logoColor=white)
@@ -277,7 +276,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
   <a href="https://github.com/yourusername/gemini-agentsdk-gui-app/issues">Report Bug</a> ·
   <a href="https://github.com/yourusername/gemini-agentsdk-gui-app/issues">Request Feature</a>
 </p>
-```
 
 
 
