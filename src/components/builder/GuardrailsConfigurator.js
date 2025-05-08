@@ -18,13 +18,15 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
 import AddIcon from '@mui/icons-material/Add';
-import SecurityIcon from '@mui/icons-material/Security'; // Input guardrail icon
-import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined'; // Output guardrail icon
+import SecurityIcon from '@mui/icons-material/Security'; // Input Callbacks/Guardrails icon
+import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined'; // Output Callbacks/Guardrails icon
 import SchemaIcon from '@mui/icons-material/Schema'; // Icon for structured output
 import CodeIcon from '@mui/icons-material/Code';
+import EditIcon from '@mui/icons-material/Edit'; // Added for editing chips
+import DeleteIcon from '@mui/icons-material/Delete'; // Added for deleting chips
 import Editor from '@monaco-editor/react';
-import { guardrailTemplate, structuredOutputTemplate } from '../../utils/codeTemplates'; // Use updated templates
-import { ThemeProvider, useTheme } from '@mui/material/styles'; // To get theme mode for editor
+import { guardrailTemplate, structuredOutputTemplate } from '../../utils/codeTemplates'; // Use updated templates (guardrailTemplate now represents callback examples)
+import { useTheme } from '@mui/material/styles'; // To get theme mode for editor
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -32,12 +34,12 @@ function TabPanel(props) {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`guardrails-tabpanel-${index}`}
-      aria-labelledby={`guardrails-tab-${index}`}
+      id={`callbacks-tabpanel-${index}`} // Updated ID
+      aria-labelledby={`callbacks-tab-${index}`} // Updated aria
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}> {/* Increased padding */}
+        <Box sx={{ p: 3 }}> {/* Consistent padding */}
           {children}
         </Box>
       )}
@@ -47,24 +49,21 @@ function TabPanel(props) {
 
 function GuardrailsConfigurator({ agentData, updateAgentData }) {
   const theme = useTheme(); // Get theme for editor
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState(0); // 0: Before Callbacks, 1: After Callbacks, 2: Structured Output
   const [openDialog, setOpenDialog] = useState(false);
-  const [dialogMode, setDialogMode] = useState('input'); // 'input', 'output', or 'structured'
+  const [dialogMode, setDialogMode] = useState('before'); // 'before', 'after', or 'structured'
   const [customCode, setCustomCode] = useState('');
-  const [currentGuardrailId, setCurrentGuardrailId] = useState(null); // For editing
+  const [currentCallbackId, setCurrentCallbackId] = useState(null); // For editing custom callback code snippets
+  const [currentCallbackName, setCurrentCallbackName] = useState(''); // For dialog title/naming
 
-  // Example state for predefined guardrails (adapt based on actual ADK features)
-  const [enabledGuardrails, setEnabledGuardrails] = useState(() => {
-      // Initialize from agentData or defaults
-      const initial = {
-          // Input
-          googleSafetyFilter: agentData.inputGuardrails?.some(g => g.id === 'googleSafetyFilter') ?? true, // Example default
-          customInputBlocker: agentData.inputGuardrails?.some(g => g.id === 'customInputBlocker') ?? false,
-          // Output
-          googleSafetyFilterOutput: agentData.outputGuardrails?.some(g => g.id === 'googleSafetyFilterOutput') ?? true, // Example default
-          customOutputModifier: agentData.outputGuardrails?.some(g => g.id === 'customOutputModifier') ?? false,
+  // Example state for predefined concepts (ADK uses model safety settings primarily)
+  // These switches are more illustrative placeholders now.
+  const [enabledSettings, setEnabledSettings] = useState(() => {
+      // Initialize based on agentData if specific flags were stored, otherwise defaults
+      return {
+          googleSafetyFilterInput: agentData.inputGuardrails?.some(g => g.id === 'googleSafetyFilterInput') ?? true, // Default ON
+          googleSafetyFilterOutput: agentData.outputGuardrails?.some(g => g.id === 'googleSafetyFilterOutput') ?? true, // Default ON
       };
-      return initial;
   });
 
   const handleTabChange = (event, newValue) => {
@@ -72,218 +71,243 @@ function GuardrailsConfigurator({ agentData, updateAgentData }) {
   };
 
   // --- Dialog Handling ---
-  const handleOpenCodeDialog = (mode, guardrail = null) => {
+  const handleOpenCodeDialog = (mode, callbackConfig = null) => {
     setDialogMode(mode);
-    if (guardrail) {
-      // Editing existing custom guardrail
-      setCurrentGuardrailId(guardrail.id);
-      setCustomCode(guardrail.code || `## Custom ${mode} guardrail: ${guardrail.name}\n\n# Add Python code here\n# Example (Input): \n# if 'bad word' in context.request:\n#   raise GuardrailViolation('Input contains bad word')\n\n# Example (Output):\n# if 'secret' in context.response:\n#   context.response = '[REDACTED]'\n`);
+    if (callbackConfig) {
+      // Editing existing custom callback code snippet
+      setCurrentCallbackId(callbackConfig.id);
+      setCurrentCallbackName(callbackConfig.name || `Custom ${mode} Callback`);
+      // Provide a more relevant default/example if code is empty
+      setCustomCode(callbackConfig.code || `# Python code for ${callbackConfig.name}\n\n# Example for ${mode} callback:\ndef ${callbackConfig.name}(context, data):\n    print("Callback triggered!")\n    # Modify 'data' or return specific object to override\n    return None`);
+      setOpenDialog(true);
     } else if (mode === 'structured') {
         // Editing/Creating Structured Output Schema
-        setCurrentGuardrailId(null); // Not editing a specific guardrail ID
+        setCurrentCallbackId(null); // Not editing a specific callback ID
+        setCurrentCallbackName('Structured Output Schema');
         // Load existing schema or template
-        setCustomCode(agentData.outputType?.schema || structuredOutputTemplate.replace('{{className}}', 'MyStructuredOutput').replace('{{fields}}', '  field1: str\n  field2: Optional[int] = None'));
+        setCustomCode(agentData.outputType?.schema || structuredOutputTemplate
+            .replace('{{className}}', 'MyStructuredOutput')
+            .replace('{{class_description}}', 'Description for the output structure.')
+            .replace('{{fields}}', '  field1: str = Field(description="Description of field1")\n  field2: Optional[int] = Field(default=None, description="Description of field2")')
+            .replace('{{name}}', agentData.name || 'MyAgent')
+            .replace('{{instructions}}', agentData.instructions || 'Provide structured output.')
+            .replace('{{model}}', agentData.model || 'gemini-1.5-flash')
+        );
+        setOpenDialog(true);
+    } else {
+      // Adding new custom callback code snippet
+      const callbackType = mode === 'before' ? 'before_model_callback' : 'after_model_callback'; // Example mapping
+      const newName = `my_${callbackType}_${Date.now().toString().slice(-4)}`;
+      setCurrentCallbackId(null);
+      setCurrentCallbackName(`New Custom ${mode} Callback`);
+      setCustomCode(guardrailTemplate // Use template which now contains callback examples
+          .replace('{{name}}', agentData.name || 'MyAgent')
+          .replace('{{instructions}}', `# Define Python function for ${callbackType}`)
+          .replace('@input_guardrail', `# Register as ${callbackType} in Agent constructor`) // Adapt template comments
+          .replace('content_filter', newName) // Use generated name
+      );
+      setOpenDialog(true);
     }
-     else {
-      // Adding new custom guardrail
-      setCurrentGuardrailId(null);
-      setCustomCode(guardrailTemplate.replace('{{name}}', `my_${mode}_guardrail`).replace('{{instructions}}', '# Define guardrail logic'));
-    }
-    setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setCustomCode('');
-    setCurrentGuardrailId(null);
+    setCurrentCallbackId(null);
+    setCurrentCallbackName('');
   };
 
   const handleSaveCustomConfig = () => {
     if (dialogMode === 'structured') {
         // Save structured output schema
         // TODO: Add validation for Pydantic model code if possible client-side
-        updateAgentData('outputType', { schema: customCode }); // Store schema code
+        updateAgentData('outputType', { schema: customCode, name: 'PydanticSchema' }); // Store schema code and a type name
         console.log("Updated structured output schema.");
     } else {
-        // Save custom input/output guardrail
-        const guardrailListKey = dialogMode === 'input' ? 'inputGuardrails' : 'outputGuardrails';
-        const existingList = agentData[guardrailListKey] || [];
-        const newGuardrail = {
-            id: currentGuardrailId || `custom-${dialogMode}-${Date.now()}`,
-            name: `Custom ${dialogMode} Guardrail ${currentGuardrailId ? '(Edited)' : ''}`, // Simple naming
-            type: 'custom', // Indicate it's custom code
+        // Save custom callback code snippet
+        // Determine which list to update based on dialogMode ('before' or 'after')
+        // We'll store them generically for now, association with specific ADK callbacks happens in backend/code gen
+        // Let's use inputGuardrails for 'before_*' and outputGuardrails for 'after_*' conceptually
+        const callbackListKey = dialogMode === 'before' ? 'inputGuardrails' : 'outputGuardrails';
+        const existingList = agentData[callbackListKey] || [];
+        const newCallbackConfig = {
+            id: currentCallbackId || `custom-${dialogMode}-${Date.now()}`,
+            // Use the name from state, fallback if needed
+            name: currentCallbackName || `custom_${dialogMode}_callback_${(existingList.length + 1)}`,
+            type: 'custom_callback', // Indicate it's custom callback code
+            hook_point: dialogMode, // Store whether it's intended for 'before' or 'after' hooks
             code: customCode,
         };
 
         let updatedList;
-        if (currentGuardrailId) {
+        if (currentCallbackId) {
             // Update existing
-            updatedList = existingList.map(g => g.id === currentGuardrailId ? newGuardrail : g);
+            updatedList = existingList.map(cb => cb.id === currentCallbackId ? newCallbackConfig : cb);
         } else {
             // Add new
-            updatedList = [...existingList, newGuardrail];
+            updatedList = [...existingList, newCallbackConfig];
         }
-        updateAgentData(guardrailListKey, updatedList);
-        console.log(`Saved custom ${dialogMode} guardrail: ${newGuardrail.id}`);
+        updateAgentData(callbackListKey, updatedList);
+        console.log(`Saved custom ${dialogMode} callback config: ${newCallbackConfig.id}`);
     }
     handleCloseDialog();
   };
 
-  // --- Predefined Guardrail Toggle ---
-  const handleGuardrailToggle = (guardrailId, type) => (event) => {
+  // --- Predefined Settings Toggle (Illustrative) ---
+  const handleSettingToggle = (settingId, type) => (event) => {
     const isEnabled = event.target.checked;
-    const guardrailListKey = type === 'input' ? 'inputGuardrails' : 'outputGuardrails';
-    const existingList = agentData[guardrailListKey] || [];
+    const listKey = type === 'input' ? 'inputGuardrails' : 'outputGuardrails';
+    const existingList = agentData[listKey] || [];
     let updatedList;
 
+    // Treat these as markers/flags rather than executable guardrails
     if (isEnabled) {
-      // Add the predefined guardrail if not already present
-      if (!existingList.some(g => g.id === guardrailId)) {
-        updatedList = [...existingList, { id: guardrailId, name: guardrailId, type: 'predefined' }]; // Add predefined marker
+      if (!existingList.some(g => g.id === settingId)) {
+        updatedList = [...existingList, { id: settingId, name: settingId, type: 'setting_flag' }];
       } else {
-        updatedList = existingList; // Already exists
+        updatedList = existingList;
       }
     } else {
-      // Remove the predefined guardrail
-      updatedList = existingList.filter(g => g.id !== guardrailId);
+      updatedList = existingList.filter(g => g.id !== settingId);
     }
 
-    setEnabledGuardrails(prev => ({ ...prev, [guardrailId]: isEnabled }));
-    updateAgentData(guardrailListKey, updatedList);
+    setEnabledSettings(prev => ({ ...prev, [settingId]: isEnabled }));
+    updateAgentData(listKey, updatedList);
   };
 
-   // --- Custom Guardrail Deletion ---
-   const handleDeleteCustomGuardrail = (guardrailId, type) => {
-       const guardrailListKey = type === 'input' ? 'inputGuardrails' : 'outputGuardrails';
-       const updatedList = (agentData[guardrailListKey] || []).filter(g => g.id !== guardrailId);
-       updateAgentData(guardrailListKey, updatedList);
-       console.log(`Deleted custom ${type} guardrail: ${guardrailId}`);
+   // --- Custom Callback Deletion ---
+   const handleDeleteCustomCallback = (callbackId, type) => {
+       const listKey = type === 'before' ? 'inputGuardrails' : 'outputGuardrails';
+       const updatedList = (agentData[listKey] || []).filter(cb => cb.id !== callbackId);
+       updateAgentData(listKey, updatedList);
+       console.log(`Deleted custom ${type} callback config: ${callbackId}`);
    };
 
-
-  // Filter custom guardrails for display
-  const customInputGuardrails = (agentData.inputGuardrails || []).filter(g => g.type === 'custom');
-  const customOutputGuardrails = (agentData.outputGuardrails || []).filter(g => g.type === 'custom');
+  // Filter custom callbacks for display
+  const customBeforeCallbacks = (agentData.inputGuardrails || []).filter(g => g.type === 'custom_callback');
+  const customAfterCallbacks = (agentData.outputGuardrails || []).filter(g => g.type === 'custom_callback');
 
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
-        Guardrails & Structured Output
+        Callbacks & Structured Output {/* UPDATED Title */}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Configure safety filters, custom validation logic (guardrails), and define structured output schemas for your agent. (Note: Guardrail implementation is highly dependent on the Google ADK specifics).
+        Configure ADK Callbacks (Python functions executed at specific points like before/after model/tool calls) to implement guardrails, logging, or custom logic. Define structured output schemas (Pydantic) if needed.
       </Typography>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="Guardrails Configuration Tabs">
-          <Tab label="Input Guardrails" icon={<SecurityIcon />} iconPosition="start" id="guardrails-tab-0" aria-controls="guardrails-tabpanel-0"/>
-          <Tab label="Output Guardrails" icon={<VerifiedUserOutlinedIcon />} iconPosition="start" id="guardrails-tab-1" aria-controls="guardrails-tabpanel-1"/>
-          <Tab label="Structured Output" icon={<SchemaIcon />} iconPosition="start" id="guardrails-tab-2" aria-controls="guardrails-tabpanel-2"/>
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="Callbacks Configuration Tabs">
+          <Tab label="Before Callbacks" icon={<SecurityIcon />} iconPosition="start" id="callbacks-tab-0" aria-controls="callbacks-tabpanel-0"/>
+          <Tab label="After Callbacks" icon={<VerifiedUserOutlinedIcon />} iconPosition="start" id="callbacks-tab-1" aria-controls="callbacks-tabpanel-1"/>
+          <Tab label="Structured Output" icon={<SchemaIcon />} iconPosition="start" id="callbacks-tab-2" aria-controls="callbacks-tabpanel-2"/>
         </Tabs>
       </Box>
 
-      {/* Input Guardrails Panel */}
+      {/* Before Callbacks Panel (e.g., before_model_callback, before_tool_callback) */}
       <TabPanel value={tabValue} index={0}>
         <Alert severity="info" sx={{ mb: 3 }}>
-          Input guardrails check user input *before* it reaches the main agent logic. Use them to block harmful content or enforce input formats. Google's Safety Filters might be applied by default depending on the model and ADK settings.
+          Configure Python functions (defined below, executed by the backend) to run *before* core ADK actions like calling the LLM or executing a tool. Use these for input validation, request modification, caching, or access control.
         </Alert>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2, height: '100%' }}>
-              <Typography variant="subtitle1" gutterBottom>Predefined Filters (Example)</Typography>
+              <Typography variant="subtitle1" gutterBottom>Model Safety Settings (Illustrative)</Typography>
               <FormGroup>
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={enabledGuardrails.googleSafetyFilter}
-                      onChange={handleGuardrailToggle('googleSafetyFilter', 'input')}
+                      checked={enabledSettings.googleSafetyFilterInput}
+                      onChange={handleSettingToggle('googleSafetyFilterInput', 'input')} // Stored conceptually with 'before' hooks
                     />
                   }
-                  label="Google Safety Filter (Input)"
+                  label="Use Google Safety Filters (Input)"
                 />
                 <Typography variant="caption" color="text.secondary" sx={{ pl: 4, mt: -1, mb: 1 }}>
-                  Leverage Google's built-in safety classifiers (harmful content, etc.). Behavior depends on ADK/model configuration.
+                  Leverage Google's built-in safety classifiers. Configuration happens via `generate_content_config` in the agent definition. This switch is a reminder/placeholder.
                 </Typography>
-                {/* Add more predefined input guardrails if ADK offers them */}
               </FormGroup>
             </Paper>
           </Grid>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="subtitle1" gutterBottom>Custom Input Guardrails</Typography>
+              <Typography variant="subtitle1" gutterBottom>Custom 'Before' Callbacks</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
-                Define custom Python logic (e.g., using ADK callbacks) to validate or block input.
+                Add Python code snippets for functions like `before_model_callback` or `before_tool_callback`. The exact hook point is determined by the function signature/registration in the backend.
               </Typography>
-               {customInputGuardrails.map(g => (
+               {customBeforeCallbacks.map(cb => (
                    <Chip
-                       key={g.id}
-                       label={g.name}
-                       onDelete={() => handleDeleteCustomGuardrail(g.id, 'input')}
-                       onClick={() => handleOpenCodeDialog('input', g)}
-                       sx={{ mb: 1, mr: 1 }}
+                       key={cb.id}
+                       label={cb.name}
+                       onDelete={() => handleDeleteCustomCallback(cb.id, 'before')}
+                       onClick={() => handleOpenCodeDialog('before', cb)}
+                       icon={<EditIcon fontSize="small" />}
+                       sx={{ mb: 1, mr: 1, justifyContent: 'space-between' }}
+                       deleteIcon={<DeleteIcon />}
                    />
                ))}
               <Button
                 variant="outlined"
                 startIcon={<AddIcon />}
-                onClick={() => handleOpenCodeDialog('input')}
-                sx={{ mt: 'auto' }} // Push button to bottom
+                onClick={() => handleOpenCodeDialog('before')}
+                sx={{ mt: 'auto' }}
               >
-                Add Custom Input Guardrail
+                Add Custom 'Before' Callback
               </Button>
             </Paper>
           </Grid>
         </Grid>
       </TabPanel>
 
-      {/* Output Guardrails Panel */}
+      {/* After Callbacks Panel (e.g., after_model_callback, after_tool_callback) */}
       <TabPanel value={tabValue} index={1}>
         <Alert severity="info" sx={{ mb: 3 }}>
-          Output guardrails check the agent's generated response *before* it's sent to the user. Use them to filter sensitive data, ensure policy adherence, or modify responses.
+          Configure Python functions to run *after* core ADK actions. Use these for output validation/modification (e.g., PII filtering), logging results, or triggering actions based on the output.
         </Alert>
          <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2, height: '100%' }}>
-              <Typography variant="subtitle1" gutterBottom>Predefined Filters (Example)</Typography>
+              <Typography variant="subtitle1" gutterBottom>Model Safety Settings (Illustrative)</Typography>
               <FormGroup>
                  <FormControlLabel
                   control={
                     <Switch
-                      checked={enabledGuardrails.googleSafetyFilterOutput}
-                      onChange={handleGuardrailToggle('googleSafetyFilterOutput', 'output')}
+                      checked={enabledSettings.googleSafetyFilterOutput}
+                      onChange={handleSettingToggle('googleSafetyFilterOutput', 'output')} // Stored conceptually with 'after' hooks
                     />
                   }
-                  label="Google Safety Filter (Output)"
+                  label="Use Google Safety Filters (Output)"
                 />
                  <Typography variant="caption" color="text.secondary" sx={{ pl: 4, mt: -1, mb: 1 }}>
-                   Apply Google's safety classifiers to the agent's generated response.
+                   Apply Google's safety classifiers to the agent's generated response. Configured via `generate_content_config`.
                  </Typography>
-                 {/* Add more predefined output guardrails if ADK offers them */}
               </FormGroup>
             </Paper>
           </Grid>
            <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="subtitle1" gutterBottom>Custom Output Guardrails</Typography>
+              <Typography variant="subtitle1" gutterBottom>Custom 'After' Callbacks</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
-                Define custom Python logic to validate or modify the agent's final response.
+                 Add Python code snippets for functions like `after_model_callback` or `after_tool_callback`.
               </Typography>
-               {customOutputGuardrails.map(g => (
+               {customAfterCallbacks.map(cb => (
                    <Chip
-                       key={g.id}
-                       label={g.name}
-                       onDelete={() => handleDeleteCustomGuardrail(g.id, 'output')}
-                       onClick={() => handleOpenCodeDialog('output', g)}
-                       sx={{ mb: 1, mr: 1 }}
+                       key={cb.id}
+                       label={cb.name}
+                       onDelete={() => handleDeleteCustomCallback(cb.id, 'after')}
+                       onClick={() => handleOpenCodeDialog('after', cb)}
+                       icon={<EditIcon fontSize="small" />}
+                       sx={{ mb: 1, mr: 1, justifyContent: 'space-between' }}
+                       deleteIcon={<DeleteIcon />}
                    />
                ))}
               <Button
                 variant="outlined"
                 startIcon={<AddIcon />}
-                onClick={() => handleOpenCodeDialog('output')}
+                onClick={() => handleOpenCodeDialog('after')}
                  sx={{ mt: 'auto' }}
               >
-                Add Custom Output Guardrail
+                Add Custom 'After' Callback
               </Button>
             </Paper>
           </Grid>
@@ -292,8 +316,8 @@ function GuardrailsConfigurator({ agentData, updateAgentData }) {
 
       {/* Structured Output Panel */}
       <TabPanel value={tabValue} index={2}>
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Define a Pydantic model schema to enforce a specific JSON structure for the agent's final output. This requires the agent's instructions to guide it towards using this schema.
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          Defining a structured output schema (using the `output_schema` parameter in ADK's `LlmAgent`) currently **disables tool usage** for that specific agent. Ensure your instructions clearly tell the agent to conform to the schema.
         </Alert>
         <Grid container spacing={3}>
           <Grid item xs={12}>
@@ -316,7 +340,7 @@ function GuardrailsConfigurator({ agentData, updateAgentData }) {
               </Box>
 
               <Typography variant="body2" sx={{ mb: 3 }}>
-                Define a Pydantic BaseModel class in Python code below. The agent will attempt to format its output according to this schema if instructed correctly.
+                Define a Pydantic `BaseModel` class below. The agent will attempt to format its output according to this schema if instructed correctly.
               </Typography>
 
               <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, mb: 3, minHeight: '200px', bgcolor: 'background.default' }}>
@@ -333,6 +357,18 @@ function GuardrailsConfigurator({ agentData, updateAgentData }) {
                   }}
                 />
               </Box>
+                 <Button
+                    variant="outlined"
+                    color="error"
+                    disabled={!agentData.outputType?.schema}
+                    onClick={() => {
+                         if (window.confirm("Are you sure you want to remove the structured output schema?")) {
+                             updateAgentData('outputType', null);
+                         }
+                    }}
+                 >
+                    Remove Schema
+                 </Button>
             </Paper>
           </Grid>
         </Grid>
@@ -346,35 +382,51 @@ function GuardrailsConfigurator({ agentData, updateAgentData }) {
         fullWidth
       >
         <DialogTitle>
-          {dialogMode === 'input' ? 'Edit Custom Input Guardrail' :
-           dialogMode === 'output' ? 'Edit Custom Output Guardrail' :
+          {dialogMode === 'before' ? `Edit Custom 'Before' Callback: ${currentCallbackName}` :
+           dialogMode === 'after' ? `Edit Custom 'After' Callback: ${currentCallbackName}` :
            'Edit Structured Output Schema (Pydantic)'}
         </DialogTitle>
         <DialogContent dividers>
+           {/* Input field for Callback Name when adding new */}
+           {dialogMode !== 'structured' && !currentCallbackId && (
+               <TextField
+                 autoFocus
+                 margin="dense"
+                 label="Callback Function Name"
+                 type="text"
+                 fullWidth
+                 variant="standard"
+                 value={currentCallbackName.replace("New Custom before Callback", "my_before_callback").replace("New Custom after Callback", "my_after_callback")} // Provide default suggestion
+                 onChange={(e) => setCurrentCallbackName(e.target.value)}
+                 helperText="Enter a valid Python function name (e.g., check_user_input)."
+                 sx={{ mb: 2 }}
+               />
+           )}
           <Typography variant="body2" paragraph>
             {dialogMode === 'structured' ?
              "Define your Pydantic BaseModel class here. Ensure necessary imports like 'BaseModel', 'Field', 'Optional', 'List' from 'pydantic' or 'typing'." :
-             `Define your custom ${dialogMode} guardrail function using Python. Refer to Google ADK documentation for the expected function signature and context object structure (e.g., using callbacks).`}
+             `Define the Python code for the '${currentCallbackName || 'callback function'}'. Refer to Google ADK documentation for expected function signatures (e.g., '(context: CallbackContext, data: LlmRequest | LlmResponse | dict)') and how to register it with the LlmAgent.`}
           </Typography>
           {dialogMode !== 'structured' && (
               <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-                <Chip label="Use context object" size="small"/>
-                <Chip label={dialogMode === 'input' ? "Raise GuardrailViolation on block" : "Modify context.response or raise"} size="small"/>
+                <Chip label="Access context via 'context'" size="small"/>
+                <Chip label="Modify request/response or return object to override" size="small"/>
+                <Chip label="Return None to continue" size="small"/>
               </Stack>
           )}
 
-          <Box sx={{ height: 400 }}>
+          <Box sx={{ height: 400, border: '1px solid', borderColor: 'divider' }}>
             <Editor
               height="100%"
               language="python"
               theme={theme.palette.mode === 'dark' ? 'vs-dark' : 'light'}
               value={customCode}
-              onChange={(value) => setCustomCode(value || '')} // Update state on change
+              onChange={(value) => setCustomCode(value || '')}
               options={{
-                minimap: { enabled: true }, // Enable minimap in dialog
+                minimap: { enabled: true },
                 scrollBeyondLastLine: false,
                 fontSize: 13,
-                tabSize: 4, // Standard Python tab size
+                tabSize: 4,
                 insertSpaces: true,
               }}
             />
@@ -387,9 +439,9 @@ function GuardrailsConfigurator({ agentData, updateAgentData }) {
           <Button
             onClick={handleSaveCustomConfig}
             variant="contained"
-            disabled={!customCode.trim()} // Disable save if code is empty
+            disabled={!customCode.trim() || (dialogMode !== 'structured' && !currentCallbackId && !currentCallbackName.trim())}
           >
-            Save {dialogMode === 'structured' ? 'Schema' : 'Guardrail'}
+            Save {dialogMode === 'structured' ? 'Schema' : 'Callback Code'}
           </Button>
         </DialogActions>
       </Dialog>

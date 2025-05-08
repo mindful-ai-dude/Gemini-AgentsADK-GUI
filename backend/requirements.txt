@@ -1,7 +1,7 @@
 # backend/requirements.txt
-Flask>=2.0
-Flask-CORS>=3.0
-google-adk>=0.1.0 # Use the actual version when known
-python-dotenv>=0.19
-google-cloud-aiplatform>=1.25 # Example: Needed for potential validation like listing models
-google-auth>=2.0 # Often needed for Google Cloud authentication
+Flask
+Flask-CORS
+google-adk # Use the actual version when known
+python-dotenv
+google-cloud-aiplatform # Example: Needed for potential validation like listing models
+google-auth

@@ -1,103 +1,93 @@
 // src/utils/codeTemplates.js
 
-// --- Agent Definition Template (Based on ADK structure assumptions) ---
+// --- Agent Definition Template (Based on ADK structure) ---
 export const agentTemplate = `import datetime
 # --- Core ADK Imports ---
-from google.adk import Agent, ToolContext, AgentTool, BaseTool # Adjust imports as needed
-from google.adk.agents import Callback, CallbackContextMenu # Example for callbacks
+from google.adk.agents import LlmAgent # Use LlmAgent
+from google.adk.tools import ToolContext, AgentTool, BaseTool # Base classes
+from google.adk.agents.callback_context import CallbackContext # For callbacks
+from google.genai import types as genai_types # For GenerateContentConfig
 
 # --- Tool Imports ---
-# Import built-in tools used
+# Import built-in tools used (references, not instantiated here)
 {{tool_imports}}
 # Import custom tool functions/classes if defined in separate files
 # from .my_custom_tools import my_custom_tool_function
 
 # --- Sub-Agent Imports ---
-# Import sub-agent definitions if used
-# from .sub_agents.billing_agent import billing_agent_definition
+# Import other LlmAgent instances if using AgentTool
+# from .sub_agents import summary_agent_instance, db_agent_instance
 
 # --- Define Custom Tools (if not imported) ---
 {{custom_tool_definitions}}
 
 # --- Define Agent Callbacks (Optional) ---
-# Example: Setup before agent call
-def setup_before_agent_call(context: CallbackContextMenu) -> None:
-    """Sets up initial state or context before the agent runs."""
-    print(f"*** Setting up agent '{context.agent.name}' ***")
-    # Example: Injecting database schema (if applicable and loaded)
-    # if context.agent.name == 'database_agent' and 'db_schema' in loaded_artifacts:
-    #    context.state['db_schema'] = loaded_artifacts['db_schema']
-    context.state['current_date'] = datetime.date.today().isoformat()
-    print(f"Current date set in state: {context.state['current_date']}")
+# Example: Modify LLM request before sending
+def before_model_callback_example(
+    callback_context: CallbackContext, llm_request: LlmRequest
+) -> Optional[LlmResponse]:
+    print(f"*** Intercepting LLM Request for agent: {callback_context.agent_name} ***")
+    # Example: Add a safety preamble
+    # llm_request.append_instructions(["Always respond safely and ethically."])
+    return None # Return None to proceed with the call
+
+# Example: Log tool calls
+def before_tool_callback_example(
+    tool: BaseTool, args: dict[str, Any], tool_context: ToolContext
+) -> Optional[dict]:
+     print(f"*** Agent '{tool_context.agent_name}' calling tool '{tool.name}' with args: {args} ***")
+     return None # Return None to execute the actual tool
 
 # --- Instantiate Tools ---
+# Built-in tools are often added directly by reference if no config needed
+# Custom functions are added directly by reference
+# Tools requiring config (VertexAiSearchTool, AgentTool) are instantiated
 tools_list = [
     {{tools_instantiation}}
 ]
 
-# --- Instantiate Sub-Agents (if applicable) ---
-sub_agents_list = [
-    {{sub_agents_instantiation}}
-]
-
 # --- Define the Main Agent ---
-agent = GoogleAgent(
+agent = LlmAgent(
     name="{{name}}",
-    instructions="""{{instructions}}
-
-    Current date: {{current_date}}""", # Example of injecting state
     model="{{model}}",
+    instruction="""{{instructions}}""", # Instructions guide behavior
+    description="{{description}}", # Used when called as a tool by another agent
     tools=tools_list,
-    # sub_agents=sub_agents_list, # Use if ADK supports sub_agents parameter
-    # --- Model Configuration (Example - adjust based on ADK) ---
-    # model_config={
-    #    "temperature": {{temperature}},
-    #    "top_p": {{topP}},
-    #    "top_k": {{topK}},
-    #    "max_output_tokens": {{maxOutputTokens}},
-    # },
-    # --- Callbacks (Example) ---
-    # callbacks=[
-    #     Callback(before_agent_call=setup_before_agent_call),
-    # ]
-    # --- Other ADK specific parameters ---
-)
+    # --- Model Generation Configuration ---
+    generate_content_config=genai_types.GenerateContentConfig(
+        temperature={{temperature}},
+        top_p={{topP}},
+        top_k={{topK}},
+        max_output_tokens={{maxOutputTokens}},
+        # Add safety_settings, stop_sequences if needed
+    ),
+    # --- Optional: Structured Output ---
+    # output_schema=MyOutputSchema, # Requires defining MyOutputSchema (Pydantic model)
+    # output_key="my_result_key", # Store result in state['my_result_key']
 
-# --- Optional: Define Agent Tree (if using sub_agents) ---
-# Example structure, depends heavily on ADK's multi-agent approach
-# root_agent = GoogleAgent(
-#     name="root_{{name}}",
-#     model="{{model}}",
-#     instructions="Orchestrate tasks between sub-agents.",
-#     sub_agents=sub_agents_list # Pass instantiated sub-agents here
-# )
+    # --- Optional: Callbacks ---
+    # before_model_callback=before_model_callback_example,
+    # before_tool_callback=before_tool_callback_example,
+    # Add other callbacks: after_model_callback, after_tool_callback, etc.
+
+    # --- Optional: Other LlmAgent parameters ---
+    # include_contents='none', # To make agent stateless regarding history
+    # planner=MyPlanner(),
+    # code_executor=MyCodeExecutor(),
+)
 
 print(f"Agent '{agent.name}' created successfully.")
 
-# To run this agent, you would typically use a runner provided by the ADK
-# Example (adjust based on actual ADK runner):
-#
-# import asyncio
-# from google.adk import run_agent_async
-#
-# async def main():
-#   user_query = "What are the total sales for Canada?"
-#   print(f"\\n--- Running Agent for Query: '{user_query}' ---")
-#   result = await run_agent_async(agent, user_query) # Or root_agent if using a tree
-#   print("\\n--- Agent Result ---")
-#   print(result)
-#   print("--------------------\\n")
-#
-# if __name__ == "__main__":
-#   asyncio.run(main())
+# To run this agent, use the ADK Runner
+# See runnerTemplate and streamingTemplate examples
 `;
 
 // --- Custom Tool Template (Standard Python Function) ---
-export const functionToolTemplate = `# Potential ADK tool decorator (if applicable)
-# from google.adk.tools import tool
+export const functionToolTemplate = `# Define your Python function
+# Use type hints for parameters and return value
+# The docstring is crucial for the LLM to understand the tool
 
-# @tool
-def {{name}}({{parameters}}) -> {{return_type}}: # Specify return type hint
+def {{name}}({{parameters}}) -> {{return_type}}:
     \"\"\"{{description}}
 
     Args:
@@ -106,188 +96,250 @@ def {{name}}({{parameters}}) -> {{return_type}}: # Specify return type hint
     Returns:
         {{return_doc}}
     \"\"\"
-    # Function implementation goes here
+    # Function implementation
     print(f"Executing tool: {{name}} with args: {{args_list}}")
     # Replace with actual logic
     result = "Simulated result from {{name}}"
-    return result
+    return result # Return value should be JSON serializable (dict preferred)
+
+# --- ADK Agent Setup ---
+# from google.adk.agents import LlmAgent
+#
+# # Add the function *directly* to the agent's tools list
+# agent = LlmAgent(
+#     # ... other agent params
+#     tools=[{{name}}] # Pass the function object
+# )
 `;
 
-// --- Structured Output Template (Using Pydantic - common pattern) ---
-// ADK might have its own mechanism or support Pydantic directly.
+// --- Structured Output Template (Using Pydantic) ---
 export const structuredOutputTemplate = `from pydantic import BaseModel, Field
 from typing import List, Optional
 
+# Define your Pydantic model for the desired output structure
 class {{className}}(BaseModel):
     \"\"\"{{class_description}}\"\"\"
     {{fields}}
 
-# --- ADK Agent Setup (Example) ---
-# from google.adk import Agent
+# --- ADK Agent Setup ---
+# from google.adk.agents import LlmAgent
 #
-# agent = Agent(
+# agent = LlmAgent(
 #     name="{{name}}",
-#     instructions="""{{instructions}}
-#
-#     Respond using the {{className}} structure.""",
-#     output_schema={{className}}, # Hypothetical ADK parameter for structured output
-#     model="{{model}}"
-# )
-`;
-
-// --- Guardrail Template (Placeholder - Highly ADK Dependent) ---
-export const guardrailTemplate = `# Guardrail implementation depends heavily on the ADK's specific mechanisms.
-# It might involve callbacks, specific guardrail classes, or other patterns.
-
-# --- Example using Hypothetical Callbacks ---
-# from google.adk.agents import Callback, CallbackContextMenu, GuardrailViolation
-
-# def input_content_filter(context: CallbackContextMenu) -> None:
-#     user_input = context.request # Assuming request holds user input
-#     print(f"Applying input guardrail to: {user_input}")
-#     if "prohibited content" in user_input.lower():
-#         # ADK might have a specific way to signal a violation
-#         raise GuardrailViolation("Input contains prohibited content.")
-#     print("Input guardrail passed.")
-
-# def output_pii_filter(context: CallbackContextMenu) -> None:
-#     agent_response = context.response # Assuming response holds agent output
-#     print(f"Applying output guardrail to: {agent_response}")
-#     if "SSN:" in agent_response:
-#         # Modify response or raise violation
-#         context.response = "[REDACTED PII]"
-#         print("Output guardrail modified response.")
-#         # Or: raise GuardrailViolation("Output contains PII.")
-#     print("Output guardrail passed.")
-
-
-# --- ADK Agent Setup (Example) ---
-# from google.adk import Agent
-#
-# agent = Agent(
-#     name="{{name}}",
-#     instructions="{{instructions}}",
 #     model="{{model}}",
-#     callbacks=[
-#         Callback(before_llm_call=input_content_filter), # Example hook point
-#         Callback(after_llm_call=output_pii_filter)     # Example hook point
-#     ]
+#     instruction="""{{instructions}}
+#
+#     **IMPORTANT**: Your final response MUST be a JSON object conforming exactly
+#     to the {{className}} schema. Do not add any introductory text or explanations
+#     outside the JSON structure.
+#     """,
+#     output_schema={{className}}, # Set the output schema
+#     # Note: Setting output_schema disables tool usage for this agent.
 # )
 `;
 
-// --- Runner Template (Placeholder - Based on Backend/ADK Runner) ---
+// --- Guardrail/Callback Template ---
+export const guardrailTemplate = `# ADK uses Callbacks for guardrails and lifecycle hooks.
+# Define Python functions to be registered with the agent.
+
+from google.adk.agents import LlmAgent, BaseAgent
+from google.adk.agents.callback_context import CallbackContext
+from google.adk.models import LlmRequest, LlmResponse
+from google.adk.tools import BaseTool, ToolContext
+from google.genai import types
+from typing import Optional, Any, Dict
+
+# Example: Input Guardrail using before_model_callback
+def block_harmful_input(
+    callback_context: CallbackContext, llm_request: LlmRequest
+) -> Optional[LlmResponse]:
+    \"\"\"Checks the last user message for prohibited content.\"\"\"
+    last_user_message = ""
+    if llm_request.contents and llm_request.contents[-1].role == 'user':
+         if llm_request.contents[-1].parts:
+            last_user_message = llm_request.contents[-1].parts[0].text or ""
+
+    print(f"[Callback] Checking input: '{last_user_message[:50]}...'")
+    if "harmful keyword" in last_user_message.lower():
+        print("[Callback] Harmful content detected! Blocking LLM call.")
+        # Return an LlmResponse to skip the LLM call and provide a fixed response
+        return LlmResponse(
+            content=types.Content(role="model", parts=[
+                types.Part(text="I cannot process requests containing harmful content.")
+            ])
+        )
+    # Return None to allow the LLM call to proceed
+    return None
+
+# Example: Output Guardrail using after_model_callback
+def redact_pii_output(
+    callback_context: CallbackContext, llm_response: LlmResponse
+) -> Optional[LlmResponse]:
+    \"\"\"Redacts potential PII (like SSN) from the model's response.\"\"\"
+    if llm_response.content and llm_response.content.parts:
+        modified = False
+        for part in llm_response.content.parts:
+            if part.text and "SSN:" in part.text:
+                 print("[Callback] Redacting PII from output.")
+                 # Basic redaction example - use more robust methods in production
+                 part.text = part.text.replace("SSN:", "[REDACTED SSN]:")
+                 modified = True
+        # Return the modified response if changes were made
+        return llm_response if modified else None
+    # Return None to use the original response
+    return None
+
+# --- ADK Agent Setup ---
+# agent = LlmAgent(
+#     name="{{name}}",
+#     model="{{model}}",
+#     instruction="{{instructions}}",
+#     # Register callbacks
+#     before_model_callback=block_harmful_input,
+#     after_model_callback=redact_pii_output,
+# )
+`;
+
+// --- Runner Template (Based on ADK Runner.run_async) ---
 export const runnerTemplate = `import asyncio
 import json
-# Assuming the agent definition is in agent.py
-from agent import agent # Or potentially root_agent if using an agent tree
+import os
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService # Or DatabaseSessionService, etc.
+from google.genai import types
 
-# --- Google ADK Runner Import (Hypothetical) ---
-# This will depend on the actual ADK structure
-try:
-    from google.adk import run_agent_async
-except ImportError:
-    print("Google ADK not found. Cannot run agent.")
-    async def run_agent_async(*args, **kwargs): return {"final_output": "ADK not installed - Simulated response"}
+# Assuming the agent definition is in agent.py
+from agent import agent
+
+# --- Session and Runner Setup ---
+APP_NAME = "{{name}}_app" # Use agent name or define app name
+USER_ID = "test_user_1"
+SESSION_ID = "session_1"
 
 async def main():
+    # Ensure Google Cloud credentials are set in the environment
+    # export GOOGLE_APPLICATION_CREDENTIALS="/path/to/key.json" OR export GOOGLE_API_KEY="..."
+    # export GOOGLE_PROJECT_ID="..." (if using Vertex AI)
+
+    session_service = InMemorySessionService() # Use a persistent service in production
+    session = session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=SESSION_ID)
+    runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
+
     user_prompt = "{{prompt}}"
-    print(f"--- Running Agent for Prompt: '{user_prompt}' ---")
+    print(f"--- Running Agent '{agent.name}' for Prompt: '{user_prompt}' ---")
 
-    # Running the agent (adjust based on actual ADK runner function)
-    # It might take the agent object and the prompt string.
-    # Context might be handled implicitly or need explicit creation.
+    user_message = types.Content(role='user', parts=[types.Part(text=user_prompt)])
+
     try:
-        result = await run_agent_async(agent, user_prompt)
+        final_response_text = "Agent execution finished without a final text response."
+        async for event in runner.run_async(user_id=USER_ID, session_id=session.id, new_message=user_message):
+            print(f"Event ID: {event.id}, Author: {event.author}") # Basic event logging
+            # Process specific event parts if needed (e.g., tool calls/responses)
+            if event.content and event.content.parts:
+                 for part in event.content.parts:
+                      if part.function_call:
+                           print(f"  Tool Call: {part.function_call.name}({part.function_call.args})")
+                      elif part.function_response:
+                           print(f"  Tool Response ({part.function_response.name}): {part.function_response.response}")
+                      elif part.text:
+                           print(f"  Text: '{part.text}'")
 
-        print("\\n--- Agent Result ---")
-        # Pretty print if the result is complex (e.g., dict/JSON)
-        if isinstance(result, (dict, list)):
-             print(json.dumps(result, indent=2))
-        else:
-             print(result)
+            # Capture the final text response
+            if event.is_final_response() and event.content and event.content.parts:
+                 if event.content.parts[0].text:
+                      final_response_text = event.content.parts[0].text
+                 else:
+                      # Handle non-text final response (e.g., structured output)
+                      try:
+                           final_response_text = json.dumps(event.content.parts[0].model_dump(exclude_none=True))
+                      except Exception:
+                           final_response_text = "[Non-text final response]"
+
+        print("\\n--- Final Agent Response ---")
+        print(final_response_text)
 
     except Exception as e:
         print(f"\\n--- Error running agent ---")
         print(e)
+        import traceback
+        traceback.print_exc()
 
-    print("--------------------\\n")
+    print("--------------------------\\n")
 
 if __name__ == "__main__":
-  # Ensure Google Cloud credentials are set in the environment
-  # e.g., export GOOGLE_APPLICATION_CREDENTIALS="/path/to/key.json"
-  # or export GOOGLE_API_KEY="your-key"
   asyncio.run(main())
 `;
 
-// --- Streaming Template (Placeholder - Based on Backend/ADK Runner) ---
+// --- Streaming Template (Based on ADK Runner.run_async with streaming config) ---
 export const streamingTemplate = `import asyncio
 import json
+import os
+from google.adk.agents import RunConfig, StreamingMode # Import RunConfig
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.genai import types
+
 # Assuming the agent definition is in agent.py
-from agent import agent # Or potentially root_agent
+from agent import agent
 
-# --- Google ADK Streaming Runner Import (Hypothetical) ---
-# This will depend heavily on the actual ADK streaming implementation
-try:
-    # Option 1: A dedicated streaming runner
-    # from google.adk import run_agent_streamed
-    # Option 2: The standard runner might return a streamable object
-    from google.adk import run_agent_async
-    # Assume run_agent_async returns an object with an async iterator method
-except ImportError:
-    print("Google ADK not found. Cannot run agent stream.")
-    async def run_agent_async(*args, **kwargs):
-        class MockStream:
-             async def stream_events(self):
-                 yield {"type": "final_output", "data": "ADK not installed - Simulated streaming response"}
-        return MockStream()
-
+# --- Session and Runner Setup ---
+APP_NAME = "{{name}}_stream_app"
+USER_ID = "test_user_stream_1"
+SESSION_ID = "session_stream_1"
 
 async def main():
+    # Ensure Google Cloud credentials are set
+    session_service = InMemorySessionService()
+    session = session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=SESSION_ID)
+    runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
+
     user_prompt = "{{prompt}}"
-    print(f"--- Streaming Agent for Prompt: '{user_prompt}' ---")
+    print(f"--- Streaming Agent '{agent.name}' for Prompt: '{user_prompt}' ---")
+
+    user_message = types.Content(role='user', parts=[types.Part(text=user_prompt)])
+
+    # Configure for streaming
+    run_config = RunConfig(streaming_mode=StreamingMode.SSE) # Use SSE for server-sent events
 
     try:
-        # --- Running the Agent Stream ---
-        # Adjust based on actual ADK streaming API
-        run_result = await run_agent_async(agent, user_prompt) # Or run_agent_streamed
-
         print("\\n--- Agent Stream Events ---")
-        # Assuming the result object has an async iterator for events
-        async for event in run_result.stream_events(): # Hypothetical method name
-            print(f"Event Type: {event.get('type')}")
-            # Process different event types (highly ADK specific)
-            if event.get('type') == 'token_delta': # Example: Token streaming
-                print(event.get('data', ''), end="", flush=True)
-            elif event.get('type') == 'tool_call': # Example: Tool call start
-                print(f"\\nTool Call: {event.get('data', {}).get('name')}")
-            elif event.get('type') == 'tool_result': # Example: Tool call end
-                print(f"Tool Result: {event.get('data')}")
-            elif event.get('type') == 'final_output': # Example: Final message
-                print(f"\\nFinal Output: {event.get('data')}")
-            else:
-                # Print raw event for unknown types
-                print(f"Raw Event: {json.dumps(event, indent=2)}")
+        async for event in runner.run_async(
+            user_id=USER_ID,
+            session_id=session.id,
+            new_message=user_message,
+            run_config=run_config # Pass the streaming config
+        ):
+            print(f"Event ID: {event.id}, Author: {event.author}, Partial: {event.partial}")
+            if event.content and event.content.parts:
+                 for part in event.content.parts:
+                      if part.text:
+                           print(f"  Text Chunk: '{part.text}'")
+                      elif part.function_call:
+                           print(f"  Tool Call: {part.function_call.name}({part.function_call.args})")
+                      elif part.function_response:
+                           print(f"  Tool Response ({part.function_response.name}): {part.function_response.response}")
+            if event.is_final_response():
+                 print("--- Final Response Received ---")
+
 
     except Exception as e:
         print(f"\\n--- Error during agent stream ---")
         print(e)
+        import traceback
+        traceback.print_exc()
 
-    print("\\n-------------------------\\n")
-
+    print("\\n--------------------------\\n")
 
 if __name__ == "__main__":
-  # Ensure Google Cloud credentials are set
   asyncio.run(main())
 `;
 
-// Template for a full custom tool example (standard Python)
+// Template for a full custom tool example (standard Python function)
 export const fullToolExampleTemplate = `import json
 from typing import Dict, Any, List # Use standard typing
 
-# Potential ADK tool decorator (if applicable)
-# from google.adk.tools import tool
-
-# @tool
+# Define the Python function
+# Use type hints and a clear docstring
 def get_stock_price(ticker_symbol: str) -> str:
     \"\"\"Fetches the current stock price for a given ticker symbol.
 
@@ -300,7 +352,6 @@ def get_stock_price(ticker_symbol: str) -> str:
     print(f"Executing tool: get_stock_price with symbol: {ticker_symbol}")
     # --- Placeholder Implementation ---
     # In a real scenario, this would call a financial data API.
-    # Ensure proper error handling and API key management.
     ticker_symbol = ticker_symbol.upper()
     simulated_prices = {
         "GOOGL": 175.20,
@@ -310,12 +361,18 @@ def get_stock_price(ticker_symbol: str) -> str:
     price = simulated_prices.get(ticker_symbol)
 
     if price:
-        return json.dumps({"ticker": ticker_symbol, "price": price, "currency": "USD"})
+        # Return a dictionary (preferred by ADK), it will be JSON serialized
+        return {"ticker": ticker_symbol, "price": price, "currency": "USD"}
     else:
-        return json.dumps({"error": f"Could not find price for ticker: {ticker_symbol}"})
+        return {"error": f"Could not find price for ticker: {ticker_symbol}"}
 
-# --- ADK Agent Setup (Example) ---
-# from google.adk import Agent
-# stock_price_tool = get_stock_price
-# agent = Agent(..., tools=[stock_price_tool])
+# --- ADK Agent Setup ---
+# from google.adk.agents import LlmAgent
+#
+# # Add the function directly to the agent's tools list
+# agent = LlmAgent(
+#     model="gemini-2.5-flash-preview-04-17",
+#     instruction="Use the get_stock_price tool when asked for stock prices.",
+#     tools=[get_stock_price] # Pass the function object
+# )
 `;

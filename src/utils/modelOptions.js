@@ -4,18 +4,18 @@
 // Refine these based on specific models supported by the Google ADK for agent use.
 export const modelOptions = [
   {
-    value: "gemini-1.5-flash", // Example model name
-    label: "Gemini 1.5 Flash",
+    value: "gemini-2.5-flash-preview-04-17", // Example model name
+    label: "Gemini 2.5 Flash",
     description: "Fast and versatile multimodal model (recommended default)"
   },
   {
-    value: "gemini-1.5-pro", // Example model name
-    label: "Gemini 1.5 Pro",
-    description: "Most capable multimodal model for complex tasks"
+    value: "gemini-2.5-pro-preview-05-06", // Example model name
+    label: "Gemini 2.5 Pro",
+    description: "Worlds Best multimodal model for complex tasks"
   },
   {
-    value: "gemini-1.0-pro", // Example model name
-    label: "Gemini 1.0 Pro",
+    value: "gemini-2.0-flash-exp", // Image gen model
+    label: "Gemini 2.0 Flash",
     description: "Balanced model for various tasks"
   }
   // Add other relevant Google models supported by ADK here
