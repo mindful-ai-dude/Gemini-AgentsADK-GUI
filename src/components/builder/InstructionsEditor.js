@@ -1,6 +1,7 @@
 // src/components/builder/InstructionsEditor.js
 import React, { useState } from 'react';
 import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid'; // Added Grid import
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
@@ -13,6 +14,7 @@ import CodeIcon from '@mui/icons-material/Code';
 import TextFormatIcon from '@mui/icons-material/TextFormat';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import Tooltip from '@mui/material/Tooltip'; // Added Tooltip
+import { useTheme } from '@mui/material/styles'; // Ensure useTheme is imported
 
 // Example templates updated for Google context
 const instructionTemplates = [
@@ -61,6 +63,7 @@ Important:
 ];
 
 function InstructionsEditor({ agentData, updateAgentData }) {
+  const theme = useTheme(); // Get theme using the hook
   const [editorMode, setEditorMode] = useState('text');
   const [showTemplates, setShowTemplates] = useState(false);
 
@@ -189,7 +192,7 @@ function InstructionsEditor({ agentData, updateAgentData }) {
           <Editor
             height="100%" // Monaco editor takes height prop directly
             language="markdown" // Use markdown for better formatting potential
-            theme={React.useContext(ThemeProvider).palette.mode === 'dark' ? 'vs-dark' : 'light'} // Adapt theme
+            theme={theme.palette.mode === 'dark' ? 'vs-dark' : 'light'} // Use theme from useTheme hook
             value={agentData.instructions || ''}
             onChange={handleInstructionsChange}
             options={{

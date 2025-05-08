@@ -30,14 +30,35 @@ import DescriptionIcon from '@mui/icons-material/Description'; // File Search (h
 import SmartToyIcon from '@mui/icons-material/SmartToy'; // Code Execution / Vertex AI Search
 import FunctionsIcon from '@mui/icons-material/Functions'; // Custom Function
 import TimerIcon from '@mui/icons-material/Timer'; // Long Running Function
+import AccountTreeIcon from '@mui/icons-material/AccountTree'; // Agent-as-Tool Icon
+import ExtensionIcon from '@mui/icons-material/Extension'; // Default Tool Icon
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import EditIcon from '@mui/icons-material/Edit'; // For editing custom tools
 import Editor from '@monaco-editor/react';
 import { useTheme } from '@mui/material/styles';
 
-// Import the combined/updated tools list and templates
-import { allTools, functionToolTemplate, fullToolExampleTemplate } from '../../utils/tools'; // Assuming fullToolExampleTemplate is now in tools.js
-import { modelSettingsDefaults } from '../../utils/modelOptions'; // For default settings reference
+// Import the combined/updated tools list
+import { builtInTools, exampleFunctionTools } from '../../utils/tools'; // Removed unused allTools
+// import { modelSettingsDefaults } from '../../utils/modelOptions'; // Removed unused import
+
+// Default template for a new custom Python function tool
+const DEFAULT_FUNCTION_TOOL_TEMPLATE = `
+# Python function template
+def {{name}}({{parameters}}) -> {{return_type}}:
+    """{{description}}
+
+    Args:
+        {{args_docs}}
+
+    Returns:
+        {{return_doc}}
+    """
+    # Your code here.
+    # Example:
+    # print(f"Executing {{name}} with arguments: {{args_list}}")
+    result = "Simulated result from {{name}}" # This line will be replaced by the dialog logic
+    return result
+`;
 
 function ToolsSelector({ agentData, updateAgentData }) {
   const theme = useTheme();
@@ -97,7 +118,7 @@ function ToolsSelector({ agentData, updateAgentData }) {
           description: '',
           category: 'Function',
           parameters: {}, // User defines via docstring/signature
-          code: functionToolTemplate // Start with the template
+          code: DEFAULT_FUNCTION_TOOL_TEMPLATE // Start with the template
               .replace('{{name}}', 'my_custom_tool')
               .replace('{{parameters}}', 'param1: str, param2: int = 5')
               .replace('{{return_type}}', 'str')
@@ -145,7 +166,7 @@ function ToolsSelector({ agentData, updateAgentData }) {
       updatedTools = [...(agentData.tools || []), updatedTool];
     }
     updateAgentData('tools', updatedTools);
-    handleCloseDialog();
+    handleCloseToolDialog(); // Corrected function call
   };
 
 

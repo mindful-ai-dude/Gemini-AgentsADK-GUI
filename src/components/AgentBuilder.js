@@ -15,7 +15,7 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+// import PlayArrowIcon from '@mui/icons-material/PlayArrow'; // Removed unused import
 import CodeIcon from '@mui/icons-material/Code';
 
 // Import builder steps
@@ -175,16 +175,16 @@ function AgentBuilder() {
     }
   };
 
-  // Save and navigate to test page
-  const handleSaveAndTest = async () => {
-      const savedConfig = await handleSave();
-      if (savedConfig && savedConfig.id) {
-          navigate(`/test/${savedConfig.id}`);
-      } else {
-          // Error occurred during save, message already set by handleSave
-          console.log("Save failed, not navigating to test page.");
-      }
-  };
+  // Removed unused function handleSaveAndTest
+  // const handleSaveAndTest = async () => {
+  //     const savedConfig = await handleSave();
+  //     if (savedConfig && savedConfig.id) {
+  //         navigate(`/test/${savedConfig.id}`);
+  //     } else {
+  //         // Error occurred during save, message already set by handleSave
+  //         console.log("Save failed, not navigating to test page.");
+  //     }
+  // };
 
 
   // Render the content for the current step

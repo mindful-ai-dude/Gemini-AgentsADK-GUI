@@ -88,14 +88,14 @@ export const functionToolTemplate = `# Define your Python function
 # The docstring is crucial for the LLM to understand the tool
 
 def {{name}}({{parameters}}) -> {{return_type}}:
-    \"\"\"{{description}}
+    """{{description}}
 
     Args:
         {{args_docs}}
 
     Returns:
         {{return_doc}}
-    \"\"\"
+    """
     # Function implementation
     print(f"Executing tool: {{name}} with args: {{args_list}}")
     # Replace with actual logic
@@ -118,7 +118,7 @@ from typing import List, Optional
 
 # Define your Pydantic model for the desired output structure
 class {{className}}(BaseModel):
-    \"\"\"{{class_description}}\"\"\"
+    """{{class_description}}"""
     {{fields}}
 
 # --- ADK Agent Setup ---
@@ -153,7 +153,7 @@ from typing import Optional, Any, Dict
 def block_harmful_input(
     callback_context: CallbackContext, llm_request: LlmRequest
 ) -> Optional[LlmResponse]:
-    \"\"\"Checks the last user message for prohibited content.\"\"\"
+    """Checks the last user message for prohibited content."""
     last_user_message = ""
     if llm_request.contents and llm_request.contents[-1].role == 'user':
          if llm_request.contents[-1].parts:
@@ -175,7 +175,7 @@ def block_harmful_input(
 def redact_pii_output(
     callback_context: CallbackContext, llm_response: LlmResponse
 ) -> Optional[LlmResponse]:
-    \"\"\"Redacts potential PII (like SSN) from the model's response.\"\"\"
+    """Redacts potential PII (like SSN) from the model's response."""
     if llm_response.content and llm_response.content.parts:
         modified = False
         for part in llm_response.content.parts:
@@ -341,14 +341,14 @@ from typing import Dict, Any, List # Use standard typing
 # Define the Python function
 # Use type hints and a clear docstring
 def get_stock_price(ticker_symbol: str) -> str:
-    \"\"\"Fetches the current stock price for a given ticker symbol.
+    """Fetches the current stock price for a given ticker symbol.
 
     Args:
         ticker_symbol: The stock ticker symbol (e.g., 'GOOGL').
 
     Returns:
         A JSON string containing the ticker and its simulated price, or an error message.
-    \"\"\"
+    """
     print(f"Executing tool: get_stock_price with symbol: {ticker_symbol}")
     # --- Placeholder Implementation ---
     # In a real scenario, this would call a financial data API.

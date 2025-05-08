@@ -6,14 +6,17 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip'; // Added Chip import
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemAvatar from '@mui/material/ListItemAvatar'; // Use ListItemAvatar
-import ListItemText from '@mui/material/ListItemText'; // Use ListItemText
+// import ListItemText from '@mui/material/ListItemText'; // Removed unused import
 import Avatar from '@mui/material/Avatar';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import Tooltip from '@mui/material/Tooltip'; // Added Tooltip import
+import IconButton from '@mui/material/IconButton'; // Added IconButton import
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined'; // Agent icon
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline'; // User icon
@@ -28,9 +31,9 @@ function TestAgent({ agentData }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null); // State for errors during run
+  // const [error, setError] = useState(null); // Removed unused state
   const messagesEndRef = useRef(null);
-  const [conversationHistory, setConversationHistory] = useState([]); // Store backend interaction history if needed
+  // const [conversationHistory, setConversationHistory] = useState([]); // Removed unused state
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -46,7 +49,7 @@ function TestAgent({ agentData }) {
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
-    setError(null); // Clear previous errors
+    // setError(null); // Clear previous errors (setError removed)
 
     const currentInput = input; // Capture input before clearing
     const userMessage = {
@@ -60,9 +63,10 @@ function TestAgent({ agentData }) {
     setInput(''); // Clear input field
     setIsLoading(true);
 
-    // Add user message to conversation history for backend (if needed by ADK)
-    // const currentHistory = [...conversationHistory, { role: 'user', content: currentInput }];
-    // setConversationHistory(currentHistory); // Update history state
+    // Removed conversationHistory logic
+    // // Add user message to conversation history for backend (if needed by ADK)
+    // // const currentHistory = [...conversationHistory, { role: 'user', content: currentInput }];
+    // // setConversationHistory(currentHistory); // Update history state
 
     try {
       // Call the backend service to run the agent config
@@ -74,10 +78,11 @@ function TestAgent({ agentData }) {
       // Process the response from the backend
       processAgentResponse(response);
 
-      // Add assistant response to conversation history (if needed)
-      // if (response.final_output) {
-      //    setConversationHistory(prev => [...prev, { role: 'assistant', content: response.final_output }]);
-      // }
+      // Removed conversationHistory logic
+      // // Add assistant response to conversation history (if needed)
+      // // if (response.final_output) {
+      // //    setConversationHistory(prev => [...prev, { role: 'assistant', content: response.final_output }]);
+      // // }
 
     } catch (runError) {
       console.error('Error running agent via backend:', runError);
@@ -88,7 +93,7 @@ function TestAgent({ agentData }) {
         content: `Error: ${runError.message || 'Failed to get response from agent backend.'}`
       };
       setMessages(prev => [...prev, errorMessage]);
-      setError(runError.message); // Set error state for potential display elsewhere
+      // setError(runError.message); // setError removed
     } finally {
       setIsLoading(false);
     }
@@ -155,8 +160,8 @@ function TestAgent({ agentData }) {
 
   const handleClearChat = () => {
     setMessages([]);
-    setConversationHistory([]); // Clear history as well
-    setError(null);
+    // setConversationHistory([]); // setConversationHistory removed
+    // setError(null); // setError removed
   };
 
   // Render messages with appropriate styling

@@ -1,6 +1,6 @@
 // src/components/builder/SubAgentsSelector.js
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'; // Removed useEffect
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
@@ -23,7 +23,7 @@ import Tooltip from '@mui/material/Tooltip';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import AccountTreeIcon from '@mui/icons-material/AccountTree'; // Icon for sub-agents
-import PersonIcon from '@mui/icons-material/Person'; // Keep for consistency? Or use specific icons?
+// import PersonIcon from '@mui/icons-material/Person'; // Removed unused import
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 // --- Sample Available Agent Configurations (Simulated) ---

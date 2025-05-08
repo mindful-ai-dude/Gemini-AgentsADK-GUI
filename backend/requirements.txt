@@ -1,7 +1,7 @@
 # backend/requirements.txt
 Flask
 Flask-CORS
-google-adk # Use the actual version when known
+google-adk 
 python-dotenv
 google-cloud-aiplatform # Example: Needed for potential validation like listing models
 google-auth

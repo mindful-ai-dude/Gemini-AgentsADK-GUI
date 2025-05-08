@@ -1,12 +1,10 @@
 // src/utils/apiService.js
+import { modelOptions, modelSettingsDefaults } from './modelOptions'; // Moved import to top
 
 // Local storage keys remain the same for managing configurations client-side
 const STORAGE_KEY_AGENTS = 'google_adk_agents';
 const STORAGE_KEY_API_KEY = 'google_api_key';
 const BACKEND_URL = 'http://localhost:5001'; // URL of the Flask backend
-
-// Import model options for defaults
-import { modelOptions, modelSettingsDefaults } from './modelOptions';
 
 class ApiService {
   constructor() {
@@ -142,7 +140,7 @@ class ApiService {
 
     // Retrieve the current API key to potentially pass if needed,
     // although ideally, the backend uses its configured credentials.
-    const apiKey = localStorage.getItem(STORAGE_KEY_API_KEY);
+    // const apiKey = localStorage.getItem(STORAGE_KEY_API_KEY); // Removed unused variable
     // if (!apiKey) {
     //   throw new Error('Google API key not found in local storage.');
     // }

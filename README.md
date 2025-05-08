@@ -40,7 +40,25 @@ A professional, intuitive GUI application paired with a Flask backend for creati
 - **Local Storage**: Agent configurations are saved locally in your browser for privacy and convenience.
 - **API Key Management**: Securely store your Google Cloud API key locally; validation and usage occur via the backend service.
 
-## 🚀 Getting Started
+## 📸 Screenshots
+
+Here are some glimpses of the Gemini Agent Builder GUI:
+
+![Screenshot 1: Agent Builder Dashboard](public/1-image-gemini-agent-builder-1200x1000p.png)
+*Agent Configuration Dashboard*
+
+![Screenshot 2: Agent Builder Step 1](public/2-image-gemini-agent-builder-1200x1000p.png)
+*Agent Builder - Basic Details Step*
+
+![Screenshot 3: Agent Builder Step 2](public/3-image-gemini-agent-builder-1200x1000p.png)
+*Agent Builder - Instructions Editor*
+
+![Screenshot 4: Agent Builder Step 3](public/4-image-gemini-agent-builder-1200x1000p.png)
+*Agent Builder - Tools Selector*
+
+![Screenshot 5: Agent Test Chat](public/app-react-terminal-gemini-agent-builder.png)
+*Agent Testing Interface*
+## � Getting Started
 
 ### Prerequisites
 

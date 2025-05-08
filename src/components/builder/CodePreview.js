@@ -1,5 +1,5 @@
 // src/components/builder/CodePreview.js
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react'; // Removed useEffect
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -16,18 +16,19 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CodeIcon from '@mui/icons-material/Code';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import { ThemeProvider, useTheme } from '@mui/material/styles'; // For editor theme
+import { useTheme } from '@mui/material/styles'; // Removed ThemeProvider, For editor theme
 
 // Import updated Google ADK code templates
 import {
   agentTemplate,
-  functionToolTemplate, // Keep for potential display if needed
-  structuredOutputTemplate, // Keep for potential display if needed
-  guardrailTemplate, // Keep for potential display if needed
+  // functionToolTemplate, // Removed unused import
+  // structuredOutputTemplate, // Removed unused import
+  // guardrailTemplate, // Removed unused import
   runnerTemplate,
   streamingTemplate,
-  fullToolExampleTemplate // Keep for potential display if needed
+  // fullToolExampleTemplate // Removed unused import
 } from '../../utils/codeTemplates';
+import { modelSettingsDefaults } from '../../utils/modelOptions';
 
 // Helper to generate tool import statements
 const generateToolImports = (tools) => {

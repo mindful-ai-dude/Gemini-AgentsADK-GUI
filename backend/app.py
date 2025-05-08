@@ -9,12 +9,15 @@ import asyncio
 from datetime import datetime # For runner template example
 
 # --- Google ADK Imports (Confirmed from ADK source) ---
+_ADK_FULL_IMPORT_SUCCESS = True
+AgentTool = None # Initialize AgentTool
+
 try:
     # Core Agent & Runner
     from google.adk.agents import LlmAgent # Main agent class (aliased as Agent in adk.__init__)
     from google.adk.runners import Runner
-    # Tools
-    from google.adk.tools import BaseTool, FunctionTool, AgentTool, LongRunningFunctionTool
+    # Tools - Import AgentTool separately
+    from google.adk.tools import BaseTool, FunctionTool, LongRunningFunctionTool
     from google.adk.tools import google_search as google_search_tool_instance # Instance
     from google.adk.tools import built_in_code_execution as code_execution_tool_instance # Instance
     from google.adk.tools import VertexAiSearchTool # Class
@@ -26,14 +29,31 @@ try:
     from google.adk.events import Event
     from google.genai import types as genai_types # For Content, Part, etc.
 
+    try:
+        from google.adk.tools import AgentTool as RealAgentTool
+        AgentTool = RealAgentTool
+        logging.info("Successfully imported AgentTool from google.adk.tools.")
+    except ImportError:
+        logging.warning("`AgentTool` could not be imported from `google.adk.tools`. Defining a dummy class. Agent-as-Tool functionality will be limited.")
+        class _DummyAgentTool: # Define dummy AgentTool specifically here
+            def __init__(self, *args, **kwargs):
+                logging.warning("Dummy AgentTool instantiated.")
+                pass
+        AgentTool = _DummyAgentTool
+        globals()['AgentTool'] = _DummyAgentTool # Ensure it's globally available
+
 except ImportError as e:
-    print(f"Error importing Google ADK: {e}. Make sure 'google-adk' is installed.")
-    # Define dummy classes/functions if ADK is not installed
+    _ADK_FULL_IMPORT_SUCCESS = False
+    print(f"Error importing critical Google ADK components: {e}. Make sure 'google-adk' is installed. Defining dummy classes for all ADK components.")
+    # Define dummy classes/functions if ADK is not installed or core components fail
     class LlmAgent: pass
     class Runner: pass
     class BaseTool: pass
     class FunctionTool: pass
-    class AgentTool: pass
+    if AgentTool is None: # Define AgentTool dummy only if not defined by the inner try-except
+        class _FallbackDummyAgentTool: pass
+        AgentTool = _FallbackDummyAgentTool
+        globals()['AgentTool'] = _FallbackDummyAgentTool
     class LongRunningFunctionTool: pass
     class VertexAiSearchTool: pass
     class InMemorySessionService: pass
@@ -42,8 +62,12 @@ except ImportError as e:
     class InvocationContext: pass
     class CallbackContext: pass
     class Event: pass
-    class genai_types: class Content: pass; class Part: pass; class FunctionCall: pass; class FunctionResponse: pass;
-    async def run_agent_async(*args, **kwargs): return [{"final_output": "ADK not installed - Simulated response"}] # Simulate async generator
+    class genai_types:
+        class Content: pass
+        class Part: pass
+        class FunctionCall: pass
+        class FunctionResponse: pass
+    async def run_agent_async(*args, **kwargs): return [{"final_output": "ADK not installed - Simulated response"}]
     google_search_tool_instance = None
     code_execution_tool_instance = None
 
