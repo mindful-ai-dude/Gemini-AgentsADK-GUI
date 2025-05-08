@@ -23,7 +23,7 @@ A professional, intuitive GUI application paired with a Flask backend for creati
 
 ### Advanced Capabilities Configuration
 - **Custom Instructions**: Create detailed system prompts using Gemini models.
-- **Model Selection**: Choose from Google's Gemini models (e.g., Gemini 1.5 Flash, Gemini 1.5 Pro).
+- **Model Selection**: Choose from Google's Gemini models (e.g., `gemini-2.5-flash-preview-04-17`, `gemini-2.5-pro-preview-05-06`).
 - **Tool Integration**: Configure Google Search, Code Execution, Vertex AI Search, and custom Python function tools.
 - **Callback Configuration**: Define Python functions to hook into agent lifecycle events (e.g., before/after model calls, before/after tool calls) for observation, control, or implementing guardrails.
 - **Structured Output**: Define Pydantic schemas for agent responses.
