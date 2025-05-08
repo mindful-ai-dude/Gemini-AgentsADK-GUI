@@ -46,7 +46,7 @@ A professional, intuitive GUI application paired with a Flask backend for creati
 
 - Node.js (v16.x or higher recommended)
 - npm (v8.x or higher recommended)
-- Python (v3.9 or higher recommended for ADK)
+- Python (v3.12 or higher recommended for ADK)
 - pip (Python package installer)
 - Google Cloud API Key with necessary permissions (e.g., Vertex AI API enabled)
 - (Optional but Recommended) Google Cloud Service Account Key for the backend.
@@ -67,9 +67,12 @@ pnpm install
 **3. Set up Backend**
 ```bash
 cd backend
-# Create a virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+# Create a Conda virtual environment (recommended)
+# Make sure you have Anaconda or Miniconda installed.
+# Replace 'gemini-adk-env' with your preferred environment name.
+# Replace '3.12' with your desired Python version if different (ADK recommends 3.12+).
+conda create --name gemini-adk-env python=3.12 -y
+conda activate gemini-adk-env
 
 # Install backend dependencies
 pip install -r requirements.txt
@@ -82,6 +85,9 @@ pip install -r requirements.txt
 # GOOGLE_API_KEY=AIzaSy..........
 # GOOGLE_PROJECT_ID=your-gcp-project-id
 
+# To deactivate the Conda environment when you're done:
+# conda deactivate
+
 cd .. # Go back to the root directory
 ```
 
@@ -92,7 +98,7 @@ You need to run both the frontend and the backend concurrently.
 *   **Terminal 1: Start Backend (Flask)**
     ```bash
     cd backend
-    source venv/bin/activate # Activate virtual env if not already active
+    conda activate gemini-adk-env # Activate Conda env if not already active
     flask run --port 5001 # Or python app.py if flask run doesn't work
     ```
     *(Keep this terminal running)*
