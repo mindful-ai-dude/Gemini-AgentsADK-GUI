@@ -48,8 +48,8 @@ A professional, intuitive GUI application paired with a Flask backend for creati
 - npm (v8.x or higher recommended)
 - Python (v3.12 or higher recommended for ADK)
 - pip (Python package installer)
-- Google Cloud API Key with necessary permissions (e.g., Vertex AI API enabled)
-- (Optional but Recommended) Google Cloud Service Account Key for the backend.
+- Google Cloud API Key with necessary permissions (e.g., Vertex AI API enabled). You will also need a Google Cloud Project if you intend to use models or services hosted on Vertex AI.
+- (Optional but Recommended) Google Cloud Service Account Key for the backend, especially for more secure or production-like local testing.
 
 ### Installation
 
@@ -78,11 +78,20 @@ conda activate gemini-adk-env
 pip install -r requirements.txt
 
 # Configure Google Cloud Credentials
-# Rename .env.example to .env
-# Edit .env and add your GOOGLE_API_KEY or set GOOGLE_APPLICATION_CREDENTIALS path
-# Optionally set GOOGLE_PROJECT_ID
+# These credentials are used by the local Flask backend to communicate with Google Cloud services,
+# including accessing Gemini models directly or via Vertex AI.
+#
+# 1. Rename .env.example to .env
+# 2. Edit .env:
+#    - Add your GOOGLE_API_KEY (for direct Gemini API access).
+#    - OR set GOOGLE_APPLICATION_CREDENTIALS to the path of your service account key JSON file (recommended for Vertex AI and other GCP services).
+#    - Optionally set GOOGLE_PROJECT_ID if using Vertex AI or other project-specific GCP services.
+#
 # Example using API Key in .env:
 # GOOGLE_API_KEY=AIzaSy..........
+#
+# Example using Service Account Key in .env:
+# GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/service-account-key.json
 # GOOGLE_PROJECT_ID=your-gcp-project-id
 
 # To deactivate the Conda environment when you're done:
@@ -121,7 +130,13 @@ Open your browser and navigate to `http://localhost:3000` (or the port specified
     The build files will be in the `build/` directory. Serve these static files using a web server (like Nginx, Caddy, or a cloud service).
 
 *   **Backend:**
-    The Flask backend should be deployed using a production-ready WSGI server (like Gunicorn or Waitress) behind a reverse proxy (like Nginx). Ensure the environment variables (`GOOGLE_API_KEY` or `GOOGLE_APPLICATION_CREDENTIALS`) are set in the production environment. See `docs/deployment.md` for more details.
+    The Flask backend can be run locally (as described in "Run the Application") for development and testing.
+    For a production setup or to run the backend within GCP (e.g., for closer integration with Vertex AI services):
+    - Deploy the Flask application to a suitable GCP service like Cloud Run, App Engine, or Google Kubernetes Engine (GKE).
+    - When deployed on GCP, it's best practice to use GCP's native authentication mechanisms (e.g., service account identity associated with the Cloud Run service) instead of embedding API keys or credential files. The Google ADK and client libraries will automatically pick up these credentials.
+    - Use a production-ready WSGI server (like Gunicorn or Waitress) behind a reverse proxy (like Nginx or Google Cloud Load Balancing).
+    - Ensure necessary environment variables (like `GOOGLE_PROJECT_ID` if not inferred) are configured for the deployed service.
+    - See `docs/deployment.md` for more general deployment considerations.
 
 ## 📖 Usage Guide
 
@@ -184,7 +199,7 @@ This application now uses a client-server architecture:
 - **Flask Backend**: Python server using Flask.
     - Receives requests from the frontend (validate API key, run agent).
     - Instantiates and runs agents using the **Google ADK** based on the received configuration.
-    - Interacts with Google AI services using backend credentials.
+    - Interacts with Google AI services (like Gemini models via direct API or Vertex AI) using the configured backend credentials (local `.env` or GCP environment credentials if deployed on GCP).
     - Returns results to the frontend.
 - **API Communication**: Frontend communicates with the Flask backend via HTTP requests (fetch/axios).
 
