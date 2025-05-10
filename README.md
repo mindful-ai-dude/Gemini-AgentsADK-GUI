@@ -1,9 +1,9 @@
 
-# Gemini Agent Builder GUI (using Google ADK)
+# Gemini Agent Builder GUI (using Google ADK v0.3.5+)
 
 ![Google ADK](https://img.shields.io/badge/Google-Agent%20Development%20Kit%20(ADK)-4285F4?style=for-the-badge&logo=google&logoColor=white)
 ![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=for-the-badge&logo=react&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-2.x-000000?style=for-the-badge&logo=flask&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-2.2.0+-000000?style=for-the-badge&logo=flask&logoColor=white)
 ![Material UI](https://img.shields.io/badge/Material%20UI-5.15.0-0081CB?style=for-the-badge&logo=mui&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 
@@ -22,7 +22,7 @@ A professional, intuitive GUI application paired with a Flask backend for creati
 
 ### Advanced Capabilities Configuration
 - **Custom Instructions**: Create detailed system prompts using Gemini models.
-- **Model Selection**: Choose from Google's Gemini models (e.g., `gemini-2.5-flash-preview-04-17`, `gemini-2.5-pro-preview-05-06`).
+- **Model Selection**: Choose from Google's Gemini models (e.g., `gemini-2.5-flash-preview-04-17`, `gemini‑2.5‑pro‑exp‑05‑06`, `gemini-2.0-flash`, `gemini-2.0-flash-lite`).
 - **Tool Integration**: Configure Google Search, Code Execution, Vertex AI Search, and custom Python function tools.
 - **Callback Configuration**: Define Python functions to hook into agent lifecycle events (e.g., before/after model calls, before/after tool calls) for observation, control, or implementing guardrails.
 - **Structured Output**: Define Pydantic schemas for agent responses.
@@ -38,6 +38,22 @@ A professional, intuitive GUI application paired with a Flask backend for creati
 - **Responsive Design**: Works on desktop and tablet devices.
 - **Local Storage**: Agent configurations are saved locally in your browser for privacy and convenience.
 - **API Key Management**: Securely store your Google Cloud API key locally; validation and usage occur via the backend service.
+
+## 🔄 May 2025 Update
+
+This application has been updated to support the latest Google ADK Python v0.3.5+ API (May 2025). Key changes include:
+
+- **Updated Tool Wrapping**: Tools are now wrapped using the new `AgentTool({ tool: instance })` syntax instead of the previous approach
+- **Simplified Agent Instantiation**: The LlmAgent class now uses a more streamlined API
+- **Direct Agent Invocation**: Using `agent.invoke()` method for simpler agent interaction
+- **Updated Model IDs**: Support for the latest Gemini model identifiers including:
+  - `gemini-2.5-flash-preview-04-17`
+  - `gemini‑2.5‑pro‑exp‑05‑06`
+  - `gemini-2.0-flash`
+  - `gemini-2.0-flash-lite`
+- **Unified Import Paths**: Streamlined imports from the `google-adk` package
+
+These changes ensure compatibility with the latest version of the Google ADK Python library while maintaining all existing functionality.
 
 ## 📸 Screenshots
 
@@ -67,10 +83,12 @@ Here are some glimpses of the Gemini Agent Builder GUI:
 ### Prerequisites
 
 - Node.js (v16.x or higher recommended)
-- npm (v8.x or higher recommended)
-- Python (v3.12 or higher recommended for ADK)
+- pnpm (as specified in user preferences)
+- Python (v3.9 or higher)
 - pip (Python package installer)
 - Google Cloud API Key with necessary permissions (e.g., Vertex AI API enabled). You will also need a Google Cloud Project if you intend to use models or services hosted on Vertex AI.
+- Google ADK Python v0.3.5+ (`google-adk>=0.3.5,<0.4.0`)
+- Flask v2.2.0+ (`Flask>=2.2.0,<3.0`)
 - (Optional but Recommended) Google Cloud Service Account Key for the backend, especially for more secure or production-like local testing.
 
 ### Installation
