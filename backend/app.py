@@ -8,19 +8,15 @@ import traceback
 import asyncio
 from datetime import datetime # For runner template example
 
-# --- Google ADK Imports (Confirmed from ADK source) ---
+# --- Google ADK Imports (Updated for v0.3.5+) ---
 _ADK_FULL_IMPORT_SUCCESS = True
-AgentTool = None # Initialize AgentTool
 
 try:
-    # Core Agent & Runner
-    from google.adk.agents import LlmAgent # Main agent class (aliased as Agent in adk.__init__)
+    # Core Agent & Generation Config
+    from google.adk import LlmAgent, GenerationConfig
     from google.adk.runners import Runner
-    # Tools - Import AgentTool separately
-    from google.adk.tools import BaseTool, FunctionTool, LongRunningFunctionTool
-    from google.adk.tools import google_search as google_search_tool_instance # Instance
-    from google.adk.tools import built_in_code_execution as code_execution_tool_instance # Instance
-    from google.adk.tools import VertexAiSearchTool # Class
+    # Tools with updated imports
+    from google.adk.tools import AgentTool, google_search_tool_instance, code_execution_tool_instance
     # Session & Context
     from google.adk.sessions import InMemorySessionService, BaseSessionService, Session
     from google.adk.agents.invocation_context import InvocationContext
@@ -28,34 +24,19 @@ try:
     # Events & Types
     from google.adk.events import Event
     from google.genai import types as genai_types # For Content, Part, etc.
-
-    try:
-        from google.adk.tools import AgentTool as RealAgentTool
-        AgentTool = RealAgentTool
-        logging.info("Successfully imported AgentTool from google.adk.tools.")
-    except ImportError:
-        logging.warning("`AgentTool` could not be imported from `google.adk.tools`. Defining a dummy class. Agent-as-Tool functionality will be limited.")
-        class _DummyAgentTool: # Define dummy AgentTool specifically here
-            def __init__(self, *args, **kwargs):
-                logging.warning("Dummy AgentTool instantiated.")
-                pass
-        AgentTool = _DummyAgentTool
-        globals()['AgentTool'] = _DummyAgentTool # Ensure it's globally available
+    
+    # Wrap built-in tools using the updated AgentTool API
+    search_agent_tool = AgentTool(tool=google_search_tool_instance)
+    exec_agent_tool = AgentTool(tool=code_execution_tool_instance)
 
 except ImportError as e:
     _ADK_FULL_IMPORT_SUCCESS = False
-    print(f"Error importing critical Google ADK components: {e}. Make sure 'google-adk' is installed. Defining dummy classes for all ADK components.")
+    print(f"Error importing critical Google ADK components: {e}. Make sure 'google-adk>=0.3.5,<0.4.0' is installed. Defining dummy classes for all ADK components.")
     # Define dummy classes/functions if ADK is not installed or core components fail
     class LlmAgent: pass
+    class GenerationConfig: pass
     class Runner: pass
-    class BaseTool: pass
-    class FunctionTool: pass
-    if AgentTool is None: # Define AgentTool dummy only if not defined by the inner try-except
-        class _FallbackDummyAgentTool: pass
-        AgentTool = _FallbackDummyAgentTool
-        globals()['AgentTool'] = _FallbackDummyAgentTool
-    class LongRunningFunctionTool: pass
-    class VertexAiSearchTool: pass
+    class AgentTool: pass
     class InMemorySessionService: pass
     class BaseSessionService: pass
     class Session: pass
@@ -70,6 +51,16 @@ except ImportError as e:
     async def run_agent_async(*args, **kwargs): return [{"final_output": "ADK not installed - Simulated response"}]
     google_search_tool_instance = None
     code_execution_tool_instance = None
+    search_agent_tool = None
+    exec_agent_tool = None
+    
+# Default generation settings
+DEFAULT_GEN_CONFIG = GenerationConfig(
+    max_tokens=512,
+    temperature=0.2,
+    top_p=0.9,
+    # new parameter if introduced upstream, e.g. `use_mirostat=True`
+)
 
 
 # --- Google Cloud Client Imports (for validation, example) ---
@@ -282,26 +273,19 @@ async def handle_run_agent():
         # TODO: Instantiate Callbacks (Requires defining callback functions in backend)
         adk_callbacks = []
 
-        # Map model settings from GUI to GenerateContentConfig if needed by LlmAgent
-        # ADK's LlmAgent might take these directly or via generate_content_config
-        genai_config = genai_types.GenerationConfig(
-             temperature=model_settings.get('temperature'),
-             top_p=model_settings.get('topP'),
-             top_k=model_settings.get('topK'),
-             max_output_tokens=model_settings.get('maxOutputTokens'),
-             # candidate_count, stop_sequences might be needed too
+        # Use the DEFAULT_GEN_CONFIG but override with any user settings
+        generation_config = GenerationConfig(
+            max_tokens=model_settings.get('maxOutputTokens', DEFAULT_GEN_CONFIG.max_tokens),
+            temperature=model_settings.get('temperature', DEFAULT_GEN_CONFIG.temperature),
+            top_p=model_settings.get('topP', DEFAULT_GEN_CONFIG.top_p),
+            # Add any other parameters as needed
         )
 
-        # Create the ADK Agent instance
+        # Create the ADK Agent instance with updated API
         live_agent = LlmAgent(
-            name=agent_name,
-            instruction=instruction,
             model=model_name,
-            tools=adk_tools,
-            sub_agents=adk_sub_agents,
-            generate_content_config=genai_config,
-            # callbacks=adk_callbacks,
-            # output_schema=... # If structured output is configured
+            generation_config=generation_config,
+            tools=[search_agent_tool, exec_agent_tool] # Use the wrapped tools
         )
         logging.info(f"ADK Agent '{agent_name}' instantiated.")
 
@@ -319,68 +303,30 @@ async def handle_run_agent():
              return jsonify({"error": f"Failed to get/create session: {str(session_err)}"}), 500
 
 
-        # --- Create Runner and Run ---
-        runner = Runner(
-            agent=live_agent,
-            app_name=app_name,
-            session_service=session_service,
-            # artifact_service=artifact_service, # Add if used
-            # memory_service=memory_service,     # Add if used
-        )
-
-        logging.info(f"Executing runner.run_async for session '{session.id}'...")
-        user_content = genai_types.Content(role='user', parts=[genai_types.Part(text=user_input)])
-
-        final_output_text = ""
-        all_events_data = [] # Store processed event data for the response
-
-        async for event in runner.run_async(user_id=user_id, session_id=session.id, new_message=user_content):
-            logging.debug(f"Received ADK Event: Author={event.author}, ID={event.id}, Partial={event.partial}")
-            event_data = {"type": "unknown", "author": event.author, "content": None}
-
-            if event.content:
-                 parts_data = []
-                 for part in event.content.parts:
-                      if part.text:
-                           parts_data.append({"type": "text", "text": part.text})
-                           if event.is_final_response():
-                                final_output_text += part.text # Accumulate final text
-                      elif part.function_call:
-                           parts_data.append({
-                                "type": "tool_call",
-                                "name": part.function_call.name,
-                                "args": part.function_call.args,
-                                "id": part.function_call.id
-                           })
-                           event_data["type"] = "tool_call_item" # Map to frontend structure
-                           event_data["raw_item"] = {"name": part.function_call.name, "arguments": json.dumps(part.function_call.args)}
-                      elif part.function_response:
-                           parts_data.append({
-                                "type": "tool_result",
-                                "name": part.function_response.name,
-                                "response": part.function_response.response,
-                                "id": part.function_response.id
-                           })
-                           event_data["type"] = "tool_call_output_item" # Map to frontend structure
-                           event_data["output"] = part.function_response.response
-                      # Add other part types if needed (inline_data, etc.)
-
-                 event_data["content"] = parts_data
-
-            # Add actions if present (e.g., state changes, transfer)
-            if event.actions:
-                 event_data["actions"] = event.actions.model_dump(exclude_none=True)
-                 if event.actions.transfer_to_agent:
-                      event_data["type"] = "agent_transfer" # Example type
-
-            if event.is_final_response():
-                 event_data["type"] = "message_output_item" # Map final text to frontend structure
-                 event_data["raw_item"] = {"content": final_output_text}
-
-
-            # Only add events with content or meaningful actions to the response list
-            if event_data["content"] or event_data.get("actions"):
-                 all_events_data.append(event_data)
+        # --- Use direct agent.invoke() approach ---
+        logging.info(f"Invoking agent directly for session '{session.id}'...")
+        
+        # Invoke the agent directly with the user input
+        response = live_agent.invoke(user_input)
+        
+        # Extract the response content
+        final_output_text = response.content if hasattr(response, 'content') else str(response)
+        all_events_data = [] # Initialize event data list
+        
+        # Create a simplified event for the response
+        event_data = {
+            "type": "message_output_item",
+            "author": "agent",
+            "content": [{"type": "text", "text": final_output_text}],
+            "raw_item": {"content": final_output_text}
+        }
+        all_events_data.append(event_data)
+        
+        # If there were tool calls in the response, we could process them here
+        # This is a simplified implementation
+        
+        # Note: The previous code using runner.run_async with event processing has been replaced
+        # with the direct agent.invoke() approach for simplicity and compatibility with the new API
 
 
         logging.info(f"Agent run completed for session '{session.id}'.")

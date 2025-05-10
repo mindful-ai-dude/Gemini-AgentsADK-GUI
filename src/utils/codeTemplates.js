@@ -1,4 +1,25 @@
 // src/utils/codeTemplates.js
+// Update instantiation signatures for new AgentTool API
+
+import { wrapAsAgentTool } from './tools';
+
+export function generateAgentSetupCode({ modelId, tools }) {
+  const toolsList = tools
+    .map(t => `wrapAsAgentTool(${t}.instance)`)
+    .join(',\n  ');
+
+  return `import { LlmAgent } from 'google-adk';
+
+const agent = new LlmAgent({
+  model: '${modelId}',
+  tools: [
+    ${toolsList}
+  ],
+});
+
+// Now you can call agent.invoke()...
+`;
+}
 
 // --- Agent Definition Template (Based on ADK structure) ---
 export const agentTemplate = `import datetime
