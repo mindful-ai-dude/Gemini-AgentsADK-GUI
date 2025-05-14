@@ -9,7 +9,7 @@
 
 A professional, intuitive GUI application paired with a Flask backend for creating configurations for, testing, and managing AI agents using **Google's Agent Development Kit (ADK)**. Build powerful AI agents powered by Gemini models with custom tools, sub-agent interactions (agent-as-tool), and callbacks without needing deep ADK expertise for configuration.
 
-> **IMPORTANT**: This project is created by Gregory Kennedy (https://aiforsocialbenefit.xyz | peacedude@gmail.com) and is **not affiliated with, endorsed by, or sponsored by Google**. It is an independent tool designed to facilitate working with the **Google Agent Development Kit (ADK)**.
+> **IMPORTANT**: This project is created by Gregory Kennedy (https://15000marketer.xyz | peacedude@gmail.com) and is **not affiliated with, endorsed by, or sponsored by Google**. It is an independent tool designed by Gregory Kennedy to facilitate creating AI Agents with the **Google Agent Development Kit (ADK)**.
 
 ## 🌟 Features
 
